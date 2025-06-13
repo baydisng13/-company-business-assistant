@@ -1,14 +1,14 @@
 import { ModeToggle } from "@/components/mode-toggle";
 import Image from "next/image";
 import Link from "next/link";
-import CompanyAssistant from "@/components/company-assistant"
-import CompanyDashboard from "@/components/company-dashboard"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { WebScraper } from "@/components/web-scraper"
-import type { Metadata } from "next"
+import CompanyAssistant from "@/components/company-assistant";
+import CompanyDashboard from "@/components/company-dashboard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WebScraper } from "@/components/web-scraper";
+import type { Metadata } from "next";
 import ScrapeClient from "@/components/ScrapeClient";
 import Scraper from "./components/Scraper";
-
+import { Card } from "@/components/ui/card";
 
 export default function Home() {
   return (
@@ -51,30 +51,47 @@ export default function Home() {
       <div className="flex-1 p-6">
         <div className="w-full max-w-7xl mx-auto">
           <div className="mb-8">
-            <h2 className="text-3xl font-bold mb-2">African Company Intelligence</h2>
+            <h2 className="text-3xl font-bold mb-2">
+              African Company Intelligence
+            </h2>
             <p className="text-slate-500">
-              Discover, analyze, and track high-growth companies across the African continent
+              Discover, analyze, and track high-growth companies across the
+              African continent
             </p>
           </div>
 
           <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-8">
-              <TabsTrigger value="dashboard">Company Dashboard</TabsTrigger>
-              <TabsTrigger value="assistant">AI Assistant</TabsTrigger>
-              <TabsTrigger value="scraper">Data Acquisition</TabsTrigger>
+            <TabsList className=" bg-transparent space-x-5">
+              {/* <TabsTrigger value="dashboard">Company Dashboard</TabsTrigger> */}
+              {[
+                {
+                  value: "assistant",
+                  label: "AI Assistant",
+                },
+                {
+                  value: "scraper",
+                  label: "Data Acquisition",
+                },
+              ].map((tab, index) => (
+                <TabsTrigger
+                  key={index}
+                  value={tab.value}
+                  className="px-4 py-3 rounded-md text-sm font-medium text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-primary focus:ring-offset-2 not-focus:bg-gray-200"
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
             </TabsList>
 
-            <TabsContent value="dashboard" className="mt-0">
-              <CompanyDashboard />
-            </TabsContent>
+            <Card>
+              <TabsContent value="assistant" className="">
+                <CompanyAssistant />
+              </TabsContent>
 
-            <TabsContent value="assistant" className="mt-0">
-              <CompanyAssistant />
-            </TabsContent>
-
-            <TabsContent value="scraper" className="mt-0">
-              <Scraper />
-            </TabsContent>
+              <TabsContent value="scraper" className="">
+                <Scraper />
+              </TabsContent>
+            </Card>
           </Tabs>
         </div>
       </div>
