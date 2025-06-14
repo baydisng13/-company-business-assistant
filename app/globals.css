@@ -172,3 +172,120 @@ body {
 }
 
 
+
+/* Slack-style markdown */
+.slack-markdown {
+  @apply text-gray-900;
+}
+
+.slack-markdown p {
+  @apply mb-2 leading-relaxed;
+}
+
+.slack-markdown p:last-child {
+  @apply mb-0;
+}
+
+.slack-markdown code {
+  @apply bg-red-100 text-red-800 px-1.5 py-0.5 rounded text-xs font-mono;
+}
+
+.slack-markdown pre {
+  @apply rounded-lg overflow-x-auto;
+}
+
+.slack-markdown blockquote {
+  @apply border-l-4 border-gray-300 pl-3 py-1 text-gray-600 italic my-2;
+}
+
+.slack-markdown ul,
+.slack-markdown ol {
+  @apply mb-2;
+}
+
+.slack-markdown li {
+  @apply mb-1;
+}
+
+.slack-markdown table {
+  @apply w-full my-3;
+}
+
+.slack-markdown th,
+.slack-markdown td {
+  @apply px-3 py-2 text-left;
+}
+
+.slack-markdown th {
+  @apply bg-gray-50 font-medium text-xs uppercase text-gray-500;
+}
+
+.slack-markdown td {
+  @apply text-sm;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Hover effects */
+.group:hover .opacity-0 {
+  opacity: 1;
+}
+
+/* Tool expansion animations */
+.group\/tool {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.group\/tool:hover {
+  transform: translateY(-1px);
+}
+
+/* Gradient animations */
+@keyframes gradient-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* Pulse animation for activity indicators */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+

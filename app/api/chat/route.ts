@@ -50,7 +50,7 @@ export async function POST(req: Request) {
         }),
         execute: async ({ identifier }) => {
           logStep(`Ai calling getCompanyById(${identifier})`);
-          let company = await getCompanyById(identifier);
+          const company = await getCompanyById(identifier);
 
           if (!company) {
             return {

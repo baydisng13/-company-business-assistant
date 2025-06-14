@@ -11,10 +11,10 @@ export default function ScrapeClient() {
   const [loading, setLoading] = useState(false)
 
   const handleScrape = async () => {
-    setLoading(true)
-    const result = await scrapeCompany(company)
-    setData(result)
-    setLoading(false)
+    // setLoading(true)
+    // // const result = await scrapeCompany(company)
+    // setData(result)
+    // setLoading(false)
   }
 
   return (

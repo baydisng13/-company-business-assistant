@@ -4,7 +4,7 @@ import {
   updateCompany,
 } from "@/actions/company-action";
 import { NextResponse } from "next/server";
-import { CompanySchema } from "../route";
+import { CompanySchema } from "@/lib/schemas/company";
 
 export const dynamic = "force-dynamic"; // static by default, unless reading the request
 export const runtime = "edge"; // specify the runtime to be edge

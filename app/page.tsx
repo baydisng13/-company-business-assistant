@@ -60,7 +60,7 @@ export default function Home() {
             </p>
           </div>
 
-          <Tabs defaultValue="dashboard" className="w-full">
+          <Tabs defaultValue="assistant" className="w-full">
             <TabsList className=" bg-transparent space-x-5">
               {/* <TabsTrigger value="dashboard">Company Dashboard</TabsTrigger> */}
               {[

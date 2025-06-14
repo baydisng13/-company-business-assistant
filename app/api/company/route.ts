@@ -1,16 +1,13 @@
 import { createCompany, getCompanies } from "@/actions/company-action";
 import { NextResponse } from "next/server";
-import { z } from "zod";
+import { CompanySchema } from "@/lib/schemas/company";
 
 export const dynamic = "force-dynamic"; // static by default, unless reading the request
 export const runtime = "edge"; // specify the runtime to be edge
 
-export const CompanySchema = z.object({
-  name: z.string(),
-  content: z.string(),
-});
 
-export async function GET(request: Request) {
+
+export async function GET() {
   const companies = await getCompanies();
 
   return NextResponse.json({ companies, message: "success" });

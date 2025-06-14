@@ -3,7 +3,24 @@
 import type React from "react"
 
 import { useChat } from "@ai-sdk/react"
-import { Send, Square, User, Bot, Copy, Check, MoreHorizontal, Smile, Reply, Wrench, Loader, CheckCircle, AlertCircle } from 'lucide-react'
+import {
+  Send,
+  Square,
+  User,
+  Bot,
+  Copy,
+  Check,
+  MoreHorizontal,
+  Smile,
+  Reply,
+  ChevronDown,
+  ChevronRight,
+  Zap,
+  Activity,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { useEffect, useRef, useState } from "react"
@@ -15,6 +32,7 @@ export default function Chat() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null)
+  const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set())
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -24,21 +42,12 @@ export default function Chat() {
     scrollToBottom()
   }, [messages])
 
-
+  // Keep focus on textarea
   useEffect(() => {
-    if (status === "streaming") {
-      scrollToBottom()
-    }
-
-    if (status === "ready") {
-     console.log("ready")
-     console.log("input : ", input)
-     console.log("messages : ", messages)
+    if (status === "ready" && textareaRef.current) {
+      textareaRef.current.focus()
     }
   }, [status])
-
-
-
 
   const adjustTextareaHeight = () => {
     const textarea = textareaRef.current
@@ -78,65 +87,152 @@ export default function Chat() {
     }
   }
 
-  const renderToolCall = (toolCall: any) => {
+  const toggleToolExpansion = (toolId: string) => {
+    const newExpanded = new Set(expandedTools)
+    if (newExpanded.has(toolId)) {
+      newExpanded.delete(toolId)
+    } else {
+      newExpanded.add(toolId)
+    }
+    setExpandedTools(newExpanded)
+  }
+
+  const renderToolCall = (toolCall: any, messageId: string, toolIndex: number) => {
+    const toolId = `${messageId}-${toolIndex}`
+    const isExpanded = expandedTools.has(toolId)
+
     const getToolIcon = (toolName: string) => {
       switch (toolName) {
-        case 'search':
-          return '🔍'
-        case 'calculator':
-          return '🧮'
-        case 'weather':
-          return '🌤️'
-        case 'code_execution':
-          return '💻'
+        case "search":
+          return { icon: "🔍", gradient: "from-blue-500 to-cyan-500" }
+        case "calculator":
+          return { icon: "🧮", gradient: "from-purple-500 to-pink-500" }
+        case "weather":
+          return { icon: "🌤️", gradient: "from-orange-500 to-yellow-500" }
+        case "code_execution":
+          return { icon: "💻", gradient: "from-green-500 to-emerald-500" }
         default:
-          return '🔧'
+          return { icon: "🔧", gradient: "from-gray-500 to-slate-500" }
       }
     }
 
-    const getStatusIcon = (status: string) => {
-      switch (status) {
-        case 'pending':
-          return <Loader className="w-3 h-3 animate-spin text-blue-500" />
-        case 'completed':
-          return <CheckCircle className="w-3 h-3 text-green-500" />
-        case 'error':
-          return <AlertCircle className="w-3 h-3 text-red-500" />
+    const getStatusIcon = (state: string) => {
+      switch (state) {
+        case "call":
+          return <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+        case "result":
+          return <CheckCircle2 className="w-4 h-4 text-green-500" />
+        case "error":
+          return <AlertTriangle className="w-4 h-4 text-red-500" />
         default:
-          return <Wrench className="w-3 h-3 text-gray-500" />
+          return <Activity className="w-4 h-4 text-gray-500" />
       }
     }
+
+    const toolInfo = getToolIcon(toolCall.toolName)
 
     return (
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 my-2">
-        <div className="flex items-center space-x-2 mb-2">
-          <span className="text-lg">{getToolIcon(toolCall.toolName)}</span>
-          <span className="text-sm font-medium text-blue-900">
-            Using {toolCall.toolName}
-          </span>
-          {getStatusIcon(toolCall.state)}
+      <div className="group/tool my-3 overflow-hidden rounded-xl border border-gray-200 bg-gradient-to-r from-gray-50 to-white shadow-sm hover:shadow-md transition-all duration-300">
+        {/* Tool Header */}
+        <div
+          className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50/50 transition-colors"
+          onClick={() => toggleToolExpansion(toolId)}
+        >
+          <div className="flex items-center space-x-3">
+            <div
+              className={`w-10 h-10 rounded-lg bg-gradient-to-r ${toolInfo.gradient} flex items-center justify-center shadow-lg`}
+            >
+              <span className="text-lg">{toolInfo.icon}</span>
+            </div>
+            <div className="flex flex-col">
+              <div className="flex items-center space-x-2">
+                <span className="font-semibold text-gray-900 capitalize">{toolCall.toolName}</span>
+                {getStatusIcon(toolCall.state)}
+              </div>
+              <span className="text-sm text-gray-500">
+                {toolCall.state === "call" ? "Executing..." : toolCall.state === "result" ? "Completed" : "Processing"}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="px-2 py-1 bg-white rounded-full border text-xs font-medium text-gray-600">
+              {toolCall.state === "call" ? "Running" : "Done"}
+            </div>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              {isExpanded ? (
+                <ChevronDown className="w-4 h-4 text-gray-500" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-gray-500" />
+              )}
+            </Button>
+          </div>
         </div>
-        
-        {toolCall.args && (
-          <div className="text-xs text-blue-700 mb-2">
-            <strong>Parameters:</strong> {JSON.stringify(toolCall.args, null, 2)}
+
+        {/* Expandable Content */}
+        <div
+          className={`overflow-hidden transition-all duration-300 ease-in-out max-w-4xl ${
+            isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
+            {/* Parameters */}
+            {toolCall.args && (
+              <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Zap className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-900">Parameters</span>
+                </div>
+                <pre className="text-xs text-blue-800 font-mono bg-white rounded p-2 overflow-x-auto">
+                  {JSON.stringify(toolCall.args, null, 2)}
+                </pre>
+              </div>
+            )}
+
+            {/* Results */}
+            {toolCall.result && (
+              <div className="bg-green-50 rounded-lg p-3 border border-green-100">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-900">Result</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-green-600 hover:text-green-700"
+                    onClick={() => copyToClipboard(JSON.stringify(toolCall.result, null, 2), `${toolId}-result`)}
+                  >
+                    {copiedMessageId === `${toolId}-result` ? (
+                      <Check className="w-3 h-3" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                  </Button>
+                </div>
+                <pre className="text-xs text-green-800 font-mono bg-white rounded p-2 overflow-x-auto max-h-32">
+                  {JSON.stringify(toolCall.result, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
-        )}
-        
-        {toolCall.result && (
-          <div className="bg-white rounded border p-2 text-sm">
-            <div className="text-xs text-gray-500 mb-1">Result:</div>
-            <div className="text-gray-900">{JSON.stringify(toolCall.result, null, 2)}</div>
-          </div>
-        )}
+        </div>
       </div>
     )
+  }
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (status === "streaming") {
+      stop()
+    } else {
+      handleSubmit(e)
+    }
   }
 
   return (
     <div className="h-screen flex bg-white">
       {/* Sidebar */}
-    
+
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
@@ -151,7 +247,14 @@ export default function Chat() {
               </div>
             </div>
             <div className="text-sm text-gray-500">
-              {status === "streaming" ? "AI is working..." : ""}
+              {status === "streaming" ? (
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>AI is working...</span>
+                </div>
+              ) : (
+                ""
+              )}
             </div>
           </div>
         </div>
@@ -160,12 +263,13 @@ export default function Chat() {
         <div className="flex-1 overflow-y-auto bg-white">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full p-8">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <Bot className="w-10 h-10 text-gray-400" />
+              <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                <Bot className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">This is the beginning of your conversation</h3>
               <p className="text-gray-500 text-center max-w-md">
-                Start chatting with your AI assistant. I can use various tools to help you with calculations, searches, code execution, and more.
+                Start chatting with your AI assistant. I can use various tools to help you with calculations, searches,
+                code execution, and more.
               </p>
             </div>
           )}
@@ -185,8 +289,10 @@ export default function Chat() {
                   <div className="flex-shrink-0 w-9 mr-2">
                     {showAvatar && (
                       <div
-                        className={`w-9 h-9 rounded-lg flex items-center justify-center text-white text-sm font-medium ${
-                          message.role === "user" ? "bg-blue-600" : "bg-gray-700"
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center text-white text-sm font-medium shadow-md ${
+                          message.role === "user"
+                            ? "bg-gradient-to-r from-blue-500 to-blue-600"
+                            : "bg-gradient-to-r from-gray-600 to-gray-700"
                         }`}
                       >
                         {message.role === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
@@ -211,11 +317,9 @@ export default function Chat() {
                         <div className="slack-markdown">
                           {/* Tool Calls Display */}
                           {message.toolInvocations && message.toolInvocations.length > 0 && (
-                            <div className="mb-3">
+                            <div className="mb-4">
                               {message.toolInvocations.map((toolCall: any, toolIndex: number) => (
-                                <div key={toolIndex}>
-                                  {renderToolCall(toolCall)}
-                                </div>
+                                <div key={toolIndex}>{renderToolCall(toolCall, message.id, toolIndex)}</div>
                               ))}
                             </div>
                           )}
@@ -224,15 +328,17 @@ export default function Chat() {
                           {message.content && (
                             <ReactMarkdown
                               components={{
-                                code({ node, className, children, ...props }) {
+                                code({ node,  className, children, ...props }) {
                                   const match = /language-(\w+)/.exec(className || "")
                                   const language = match ? match[1] : ""
 
-                                  return  (
+                                  return (
                                     <div className="my-3 border border-gray-200 rounded-lg overflow-hidden">
                                       {language && (
                                         <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-200">
-                                          <span className="text-xs font-medium text-gray-600 uppercase">{language}</span>
+                                          <span className="text-xs font-medium text-gray-600 uppercase">
+                                            {language}
+                                          </span>
                                           <Button
                                             variant="ghost"
                                             size="sm"
@@ -253,8 +359,7 @@ export default function Chat() {
                                         <code {...props}>{children}</code>
                                       </pre>
                                     </div>
-                                  )
-                   
+                                  ) 
                                 },
                                 pre({ children }) {
                                   return <>{children}</>
@@ -384,7 +489,7 @@ export default function Chat() {
             {(status === "submitted" || status === "streaming") && (
               <div className="flex hover:bg-gray-50 -mx-6 px-6 py-2 mt-4">
                 <div className="flex-shrink-0 w-9 mr-2">
-                  <div className="w-9 h-9 bg-gray-700 rounded-lg flex items-center justify-center text-white">
+                  <div className="w-9 h-9 bg-gradient-to-r from-gray-600 to-gray-700 rounded-lg flex items-center justify-center text-white shadow-md">
                     <Bot className="w-4 h-4" />
                   </div>
                 </div>
@@ -401,8 +506,8 @@ export default function Chat() {
                     </div>
                     {status === "streaming" && (
                       <div className="flex items-center space-x-1 text-xs text-blue-600">
-                        <Wrench className="w-3 h-3" />
-                        <span>Using tools...</span>
+                        <Activity className="w-3 h-3 animate-pulse" />
+                        <span>Processing with tools...</span>
                       </div>
                     )}
                   </div>
@@ -416,35 +521,20 @@ export default function Chat() {
 
         {/* Input Area */}
         <div className="border-t border-gray-200 p-6 bg-white">
-          {(status === "submitted" || status === "streaming") && (
-            <div className="mb-4 flex justify-center">
-              <Button
-                type="button"
-                onClick={() => stop()}
-                variant="outline"
-                size="sm"
-                className="border-red-200 text-red-600 hover:bg-red-50"
-              >
-                <Square className="w-3 h-3 mr-2" />
-                Stop Generation
-              </Button>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleFormSubmit}>
             <div className="border border-gray-300 rounded-lg focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
               <Textarea
                 ref={textareaRef}
                 name="prompt"
                 value={input}
                 onChange={handleInputChangeWithResize}
-                disabled={status !== "ready"}
+                disabled={false}
                 placeholder="Message AI Assistant (I can use tools to help you!)"
                 className="min-h-[44px] max-h-[120px] resize-none border-0 focus:ring-0 focus:border-0 rounded-lg px-3 py-3"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault()
-                    handleSubmit(e as any)
+                    handleFormSubmit(e as any)
                   }
                 }}
               />
@@ -454,12 +544,25 @@ export default function Chat() {
                 </div>
                 <Button
                   type="submit"
-                  disabled={status !== "ready" || !input.trim()}
+                  disabled={status === "streaming" ? false : !input.trim()}
                   size="sm"
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 h-8"
+                  className={`px-4 py-1.5 h-8 transition-all duration-200 ${
+                    status === "streaming"
+                      ? "bg-red-600 hover:bg-red-700 text-white"
+                      : "bg-green-600 hover:bg-green-700 text-white"
+                  }`}
                 >
-                  <Send className="w-3 h-3 mr-1" />
-                  Send
+                  {status === "streaming" ? (
+                    <>
+                      <Square className="w-3 h-3 mr-1" />
+                      Stop
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3 h-3 mr-1" />
+                      Send
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
