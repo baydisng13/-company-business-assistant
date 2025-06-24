@@ -1,6 +1,6 @@
 "use client"
 
-import { CompanyDataType, scrapeCompany } from "@/actions/scrapeCompany"
+import { CompanyDataType } from "@/actions/scrapeCompany"
 import { CompanyData } from "@/lib/types"
 import { useCompanyStore } from "@/store/useCompanyStore"
 import { useState } from "react"
