@@ -1,24 +1,19 @@
 "use server";
 
-import fetch from "node-fetch";
-import * as cheerio from "cheerio";
-import { generateObject } from "ai";
-import { groq } from "@ai-sdk/groq";
+import { generateText, generateObject, tool, CoreMessage } from "ai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { duckDuckGoTool } from "@/ai/tools/ddg-tool";
+import { fetchPageTool } from "@/ai/tools/fetch-page";
 import { z } from "zod";
 
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { useLogStore } from "@/store/useLog";
+// ─── Google Gemini Model ───────────────────────────────
 
 const google = createGoogleGenerativeAI({
-  apiKey: process.env.GOOGLE_API_KEY,
+  apiKey: process.env.GOOGLE_API_KEY!,
 });
-
-// Gemini 2.5 Flash Preview 05-20
-
-// const model = groq("llama-3.3-70b-versatile");
 const model = google("gemini-2.5-flash-preview-05-20");
 
-// Zod schema for structured output
+// ─── Schemas ────────────────────────────────────────────
 const TransactionSchema = z.object({
   type: z.string().nullable(),
   amount: z.string().nullable().optional(),
@@ -62,128 +57,84 @@ const CompanyDataSchema = z.object({
   sourceUrls: z.array(z.string()),
 });
 
-// change CompanyDataSchema to CompanyDataType and use it here
-
 export type CompanyDataType = z.infer<typeof CompanyDataSchema>;
 
-let qy: string;
-
-// Helper functions
-async function logStep(key: string, status: string, details?: string) {
-  const time = new Date().toLocaleTimeString();
-  const message = `${time} | [scrapeCompany] ${status}${
-    details ? ": " + details : ""
-  }`;
-  console.log(message);
-
-}
-
-async function decodeDuckHref(href: string): Promise<string | null> {
+// ─── Retry Helper ───────────────────────────────────────
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  retries = 3,
+  delay = 1500
+): Promise<T> {
   try {
-    const url = new URL(href, "https://duckduckgo.com");
-    const uddg = url.searchParams.get("uddg");
-    return uddg ? decodeURIComponent(uddg) : null;
-  } catch {
-    return null;
+    return await fn();
+  } catch (err) {
+    if (retries === 0) throw err;
+    console.warn(`Retrying due to error: ${(err as Error).message}`);
+    await new Promise((res) => setTimeout(res, delay));
+    return retryWithBackoff(fn, retries - 1, delay * 2);
   }
 }
 
-async function searchDuck(query: string): Promise<string | null> {
-  logStep(qy, "Searching DuckDuckGo", query);
-  const res = await fetch(
-    `https://html.duckduckgo.com/html?q=${encodeURIComponent(query)}`,
-    {
-      headers: { "User-Agent": "Mozilla/5.0" },
-    }
-  );
-  const $ = cheerio.load(await res.text());
-  const href = $("a.result__a").first().attr("href");
-  const url = href ? await decodeDuckHref(href) : null;
-  logStep(qy, "Resolved URL", url || "none");
-  return url;
-}
-
-async function scrapePage(url: string): Promise<string> {
-  logStep(qy, "Fetching page", url);
-  const res = await fetch(url);
-  const $ = cheerio.load(await res.text());
-  const text = $("body").text().trim().replace(/\s+/g, " ").slice(0, 6000);
-  logStep(qy, "Extracted text", text.slice(0, 60) + "…");
-  return text;
-}
-
-async function summarize(text: string, context: string): Promise<string> {
-  logStep(qy, "Summarizing for", context);
-  const { object } = await generateObject({
-    model: model,
-    schema: z.object({
-      summary: z.string(),
-    }),
-    prompt: `Summarize the following ${context}:\n\n${text}`,
-  });
-  logStep(qy, "Summary:", object.summary.slice(0, 60) + "…");
-  return object.summary;
-}
-
-export async function scrapeCompany(company: string, key: string) {
-  qy = key;
-  const memory: any = { urls: [] };
-  for (const step of [
-    { key: "description", query: company },
-    { key: "funding", query: `${company} funding` },
-    { key: "people", query: `${company} founder CEO` },
-    { key: "contact", query: `${company} contact details site:.et` },
-    { key: "social", query: `${company} facebook twitter linkedin telegram` },
-    { key: "services", query: `${company} services offered` },
-    { key: "overview", query: `${company} about us` },
-    { key: "stats", query: `${company} employees revenue founded` },
-  ]) {
-    const url = await searchDuck(step.query);
-    if (!url) continue;
-    memory.urls.push(url);
-    try {
-      const txt = await scrapePage(url);
-      memory[step.key] = await summarize(txt, step.key);
-    } catch (error) {
-      logStep(qy, `Error processing step ${step.key}`, JSON.stringify(error).slice(0, 60) + "…");
-      continue;
-    }
-  }
-  if (!memory.description) return null;
-
-  const prompt = `
-Use the following summaries and URLs to extract detailed company data for a Yellow Pages directory.
-
-Description: ${memory.description}
-Funding: ${memory.funding || ""}
-People: ${memory.people || ""}
-URLs: ${memory.urls.join(", ")}
-
-Try to extract:
-- Name
-- Country
-- Sector
-- Description
-- Key people (with roles)
-- Contact details (phone, email, website, address if available)
-- Social media accounts
-- Services they provide
-- Year founded
-- Number of employees
-- Revenue (if public)
-- Transactions (if available)
-
-Fill null for missing fields.
-Return a JSON object with all this data, matching the schema.
+// ─── Main Research Function ─────────────────────────────
+export async function scrapeCompanyWithAI(
+  companyName: string
+): Promise<CompanyDataType> {
+  const system1 = `
+You are a business research assistant. 
+Whenever you need to find or verify facts—company history, funding rounds, leadership bios, revenue figures, social channels, services, etc.—you MUST call the search tool (duckDuckGoTool) or fetchPageTool and cite the URLs you retrieved. 
+Do not hallucinate data: every data point must come from a tool call.
+Organize your draft as you go, chunking by section (Description, Founding & History, Leadership, Funding, Products & Services, Financials, Social Media & Contacts, …). 
+Aim for ~20,000+ words (~100 pages of detailed, tool-driven research).
 `;
 
-  logStep(qy, "Synthesizing final CompanyData");
-  const { object: result } = await generateObject({
-    model: model,
-    schema: CompanyDataSchema,
-    prompt: prompt,
-  });
+  const userMessage: CoreMessage = {
+    role: "user",
+    content: `
+I’d like an exhaustive, tool-backed research dossier on “${companyName}.” 
+For each section—Company Overview, Founding & Milestones, Key People, Funding & Transactions, Offerings & Services, Revenue & Financials, Contact Info, and Social Media—always use your tools to:
+1. SEARCH for primary sources (official pages, news releases, filings).
+2. FETCH pages to extract precise quotes or figures.
+3. CITE every URL alongside the fact you present.
 
-  logStep(qy, "Final object", JSON.stringify(result, null, 2));
-  return result;
+Begin with an outline, then iteratively expand each section, weaving in citations from your tool calls. 
+`,
+  };
+
+  const researchResult = await retryWithBackoff(() =>
+    generateText({
+      model,
+      system: system1,
+      messages: [userMessage],
+      tools: {
+        search: duckDuckGoTool,
+        fetchPage: fetchPageTool,
+      },
+      maxSteps: 200,
+      onStepFinish({ toolCalls, toolResults, text }) {
+        console.log("Step finished:");
+        console.log("  toolCalls:", toolCalls);
+        console.log("  toolResults:", toolResults);
+        console.log("  text chunk:", text);
+      },
+    })
+  );
+
+  const draft = researchResult.text;
+  const allMessages = researchResult.response.messages;
+
+  const summaryPrompt: CoreMessage = {
+    role: "assistant",
+    content: `Extract structured data about "${companyName}" from the research above. Return JSON matching the CompanyDataSchema. Include sourceUrls.`,
+  };
+
+  const extractResult = await generateObject({
+    model,
+    schema: CompanyDataSchema,
+    messages: [...allMessages, summaryPrompt],
+    mode: "auto",
+  });
+  const companyData = extractResult.object as CompanyDataType;
+  return JSON.parse(JSON.stringify(companyData));
 }
+
+

@@ -1,4 +1,7 @@
 import { getCompanies, getCompanyById } from "@/actions/company-action";
+import { duckDuckGoTool } from "@/ai/tools/ddg-tool";
+import { fetchPageTool } from "@/ai/tools/fetch-page";
+import { getServerTimeTool, getTimeInZoneTool } from "@/ai/tools/get-time";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { streamText, tool } from "ai";
 import { z } from "zod";
@@ -33,6 +36,10 @@ export async function POST(req: Request) {
     If you don't have specific information about a company, let the user know and suggest they ask about the companies you do have data for.`,
     messages,
     tools: {
+      fetchPage: fetchPageTool,
+      search: duckDuckGoTool,
+      getServerTime: getServerTimeTool,
+    getTimeInZone: getTimeInZoneTool,
       getCompanies: tool({
         description:
           "Get a list of all available companies with basic information",
@@ -64,7 +71,18 @@ export async function POST(req: Request) {
       }),
     },
     maxSteps: 10,
+    onError({ error }) {
+      console.error("🎯 Tool or model error:", error);
+    },
+    onStepFinish({ toolCalls, toolResults, text }) {
+      console.log("Step finished:");
+      console.log("  toolCalls:", toolCalls);
+      console.log("  toolResults:", toolResults);
+      console.log("  text chunk:", text);
+    },
   });
 
-  return result.toDataStreamResponse();
+  return result.toDataStreamResponse({
+    getErrorMessage: (err) => `⚠️ Error: ${JSON.stringify(err)}`,
+  });
 }

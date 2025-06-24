@@ -25,6 +25,7 @@ export async function getCompanies() {
   return result;
 }
 
+
 export async function getCompanyById(id: number) {
   const result = await db.query.companiesTable.findFirst({
     where: (company, { eq }) => eq(company.id, 1),
