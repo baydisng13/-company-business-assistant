@@ -21,14 +21,20 @@ export async function createCompany(company: Company) {
 }
 
 export async function getCompanies() {
-  const result = await db.query.companiesTable.findMany();
+  // only send the id and name  not the content
+  const result = await db.query.companiesTable.findMany({
+    columns: {
+      id: true,
+      name: true,
+    },
+  });
   return result;
 }
 
 
 export async function getCompanyById(id: number) {
   const result = await db.query.companiesTable.findFirst({
-    where: (company, { eq }) => eq(company.id, 1),
+    where: (company, { eq }) => eq(company.id, id),
   });
   return result;
 }
