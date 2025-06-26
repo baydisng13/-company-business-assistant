@@ -53,16 +53,7 @@ export default function Scraper() {
   const handleClick = async () => {
     setData(null);
     setLoading(true);
-    setKey(company + "-" + Math.random().toString(36).substring(2, 15));
-    console.log("key" + key);
-    const initialLog = {
-      message: `Starting scrape for ${company}...`,
-      time: new Date().toLocaleTimeString(),
-      type: "info" as const,
-    };
-    setLogs((prev) => [...prev, initialLog]);
-
-    // const result = await scrapeCompanyWithAI(company);
+    setLogs([]);
 
     const res = await fetch("/api/scrape-company", {
       method: "POST",
@@ -71,34 +62,49 @@ export default function Scraper() {
         "Content-Type": "application/json",
       },
     });
-    const result = await res.json();
 
-    if (!result) {
-      setLogs((prev) => [
-        ...prev,
-        {
-          message: `Error: Scrape failed for ${company}`,
-          time: new Date().toLocaleTimeString(),
-          type: "error" as const,
-        },
-      ]);
+    if (!res.body) {
       return;
     }
 
-    setLogs((prev) => [
-      ...prev,
-      {
-        message: `Scrape complete for ${company}`,
-        time: new Date().toLocaleTimeString(),
-        type: "success" as const,
-      },
-    ]);
-    createCompany({
-      name: result.name ? result.name : "",
-      content: JSON.stringify(result, null, 2),
-    });
-    setData(result);
-    setLoading(false);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split("\n\n");
+
+      for (const line of lines) {
+        if (line.startsWith("data:")) {
+          const json = line.substring(5);
+          const { message, time, data } = JSON.parse(json);
+
+          if (data) {
+            setData(data);
+            createCompany({
+              name: data.name ? data.name : "",
+              content: JSON.stringify(data, null, 2),
+            });
+            setLoading(false);
+            setLogs((prev) => [
+              ...prev,
+              {
+                message: `Scrape complete for ${company}`,
+                time: new Date().toLocaleTimeString(),
+                type: "success" as const,
+              },
+            ]);
+          } else {
+            setLogs((prev) => [...prev, { message, time, type: "info" as const }]);
+          }
+        }
+      }
+    }
   };
 
   useEffect(() => {}, [logs]);

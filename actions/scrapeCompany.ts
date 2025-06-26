@@ -77,7 +77,8 @@ async function retryWithBackoff<T>(
 
 // ─── Main Research Function ─────────────────────────────
 export async function scrapeCompanyWithAI(
-  companyName: string
+  companyName: string,
+  log?: (message: string) => void
 ): Promise<CompanyDataType> {
   const system1 = `
 You are a business research assistant. 
@@ -111,9 +112,25 @@ Begin with an outline, then iteratively expand each section, weaving in citation
       },
       maxSteps: 200,
       onStepFinish({ toolCalls, toolResults, text }) {
+        if (log) {
+          if (toolCalls) {
+            toolCalls.forEach((toolCall) => {
+              if (toolCall.toolName === "search") {
+                log(`Searching for ${toolCall.args.query}`);
+              }
+              if (toolCall.toolName === "fetchPage") {
+                log(`Fetching page ${toolCall.args.url}`);
+              }
+            });
+          }
+        }
+
         console.log("==== Step finished ====");
         console.log("  toolCalls:", toolCalls);
-        console.log("  toolResults:", JSON.stringify(toolResults, null, 2).slice(0, 500));
+        console.log(
+          "  toolResults:",
+          JSON.stringify(toolResults, null, 2).slice(0, 500)
+        );
         console.log("  text chunk:", text.slice(0, 500));
       },
     })
