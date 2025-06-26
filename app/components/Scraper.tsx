@@ -38,12 +38,12 @@ export default function Scraper() {
   const [loading, setLoading] = useState(false);
 
   const [logs, setLogs] = useState<Log[]>([
-    { message: "System initialized", time: "10:30:45", type: "info" },
     {
       message: "Ready to scrape company data",
       time: "10:30:46",
       type: "success",
     },
+    { message: "System initialized", time: "10:30:45", type: "info" },
   ]);
 
   // generate log key
@@ -92,15 +92,15 @@ export default function Scraper() {
             });
             setLoading(false);
             setLogs((prev) => [
-              ...prev,
               {
                 message: `Scrape complete for ${company}`,
                 time: new Date().toLocaleTimeString(),
                 type: "success" as const,
               },
+              ...prev,
             ]);
           } else {
-            setLogs((prev) => [...prev, { message, time, type: "info" as const }]);
+            setLogs((prev) => [{ message, time, type: "info" as const }, ...prev]);
           }
         }
       }
@@ -173,12 +173,12 @@ export default function Scraper() {
                   onClick={() => {
                     setLoading(false);
                     setLogs((prev) => [
-                      ...prev,
                       {
                         message: "Scraping cancelled by user",
                         time: new Date().toLocaleTimeString(),
                         type: "error" as const,
                       },
+                      ...prev,
                     ]);
                   }}
                   className="h-11 px-4"
