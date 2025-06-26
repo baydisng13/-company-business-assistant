@@ -66,7 +66,7 @@ export default function Scraper() {
 
     const res = await fetch("/api/scrape-company", {
       method: "POST",
-      body: JSON.stringify({ companyName: "Safaricom" }),
+      body: JSON.stringify({ companyName: company }),
       headers: {
         "Content-Type": "application/json",
       },
@@ -114,17 +114,8 @@ export default function Scraper() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <Building2 className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold tracking-tight">Company Scraper</h1>
-        </div>
-        <p className="text-muted-foreground">
-          Extract comprehensive company information and insights
-        </p>
-      </div>
+    <div className=" mx-auto p-6 space-y-6">
+   
 
       {/* Input Section */}
       <Card>
@@ -246,36 +237,13 @@ export default function Scraper() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500" />
-              Company Information
+              {data.name} Information
             </CardTitle>
             <CardDescription>
-              Successfully extracted data for {(data as any).company}
+              {data.description}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Key Information Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(data).map(([key, value]) => (
-                <div key={key} className="space-y-2">
-                  <Label className="text-sm font-medium capitalize">
-                    {key.replace(/([A-Z])/g, " $1").trim()}
-                  </Label>
-                  <div className="p-3 bg-muted rounded-md">
-                    <p className="text-sm font-mono">
-                      {value == null
-                        ? "—"
-                        : typeof value === "object"
-                        ? JSON.stringify(value, null, 2)
-                        : String(value)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <Separator />
-
-            {/* Raw JSON Data */}
             <div className="space-y-3">
               <Label className="text-sm font-medium">Raw JSON Data</Label>
               <ScrollArea className="h-48 w-full rounded-md border">

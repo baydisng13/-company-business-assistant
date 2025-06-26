@@ -84,7 +84,7 @@ You are a business research assistant.
 Whenever you need to find or verify facts—company history, funding rounds, leadership bios, revenue figures, social channels, services, etc.—you MUST call the search tool (duckDuckGoTool) or fetchPageTool and cite the URLs you retrieved. 
 Do not hallucinate data: every data point must come from a tool call.
 Organize your draft as you go, chunking by section (Description, Founding & History, Leadership, Funding, Products & Services, Financials, Social Media & Contacts, …). 
-Aim for ~20,000+ words (~100 pages of detailed, tool-driven research).
+Aim for ~10,000+ words (~50 pages of detailed, tool-driven research).
 `;
 
   const userMessage: CoreMessage = {
@@ -111,10 +111,10 @@ Begin with an outline, then iteratively expand each section, weaving in citation
       },
       maxSteps: 200,
       onStepFinish({ toolCalls, toolResults, text }) {
-        console.log("Step finished:");
+        console.log("==== Step finished ====");
         console.log("  toolCalls:", toolCalls);
-        console.log("  toolResults:", toolResults);
-        console.log("  text chunk:", text);
+        console.log("  toolResults:", JSON.stringify(toolResults, null, 2).slice(0, 500));
+        console.log("  text chunk:", text.slice(0, 500));
       },
     })
   );
