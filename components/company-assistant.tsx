@@ -230,7 +230,7 @@ export default function Chat() {
   }
 
   return (
-    <div className="h-screen flex bg-white">
+    <div className="h-full flex bg-white">
       {/* Sidebar */}
 
 

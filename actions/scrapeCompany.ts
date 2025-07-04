@@ -57,7 +57,44 @@ const CompanyDataSchema = z.object({
   sourceUrls: z.array(z.string()),
 });
 
+
+
+export const CompanySchema = z.object({
+  companyName: z.string().optional(),
+  headquarters: z.string().optional(),
+  website: z.string().optional(),
+  shortDescription: z.string().describe("A very brief phrase summarizing the company's activity. Example: Solar mini-grid provider or E-commerce logistics startup, no more than 100 characters.").optional(),
+  longDescription: z.string().describe(`A factual, professional summary of what the company does. Focus on products/services, operations, and customer types. Do not mention founding year or HQ. Avoid superlatives or vague marketing terms. must be no more than 1000 characters.`).optional(),
+  numberOfEmployees: z.string().describe("Number of employees, An estimate (avoid ranges)").optional(),
+  sector: z.string().describe("The broad industry category. Use the closed list provided. list: Agriculture, Finance, Healthcare, Education, Energy, Technology, Logistics, Manufacturing, Retail, Telecom, Other").optional(),
+  subSector: z.string().describe("A more specific category inside the sector. Use the closed list provided.  List : Retail, Food & Beverage, Consumer Goods, Apparel & Textiles, Banking, FinTech, Insurance, Investment Management & Advisory, Healthcare Services, Medical Devices, Pharmaceuticals, HealthTech, Transportation, Aerospace & Defense, Manufacturing, Capital Goods, Automotive, Chemicals, Construction Materials, Packaging, Forestry, Agriculture, Fishing, Real Estate Development, Real Estate Management, Leisure & Hospitality, Technical Services, Business Services, Education, Logistics, Media, Technology, Telecommunications, Software, Metals & Mining, Diversified Energy, Waste Management, Renewable Energy, and Infrastructure Services ").optional(), // or replace with enum if you have a closed list
+  shareholders: z.string().optional(),
+  keyPeople: z
+    .array(
+      z.object({
+        title: z.string(),
+        name: z.string(),
+      })
+    )
+    .max(3)
+    .optional(),
+  ownershipTransactions: z.string().optional(),
+  corporateAcquisitions: z.string().optional(),
+  corporateDivestiture: z.string().optional(),
+  investmentStage: z
+    .string().describe(" Investment stage. Use the closed list provided. List: Pre-seed,Seed,Series A,Series B,Growth,Late Stage,Buyout,Public,Other").optional(),
+  tags: z.array(
+      z.string().describe("Tags are a list of keywords that describe the company.  Use the closed list provided. List: B2B, B2C, Marketplace, SaaS, E-commerce, Fintech, Healthtech, Edtech, Logistics, AI, Cleantech, Subscription, Platform, Retail, Other")
+    )
+    .optional(),
+  sources: z.array(z.string().describe("Must be a valid URL , MIN 1 and MAX 5.")).optional(),
+});
+
+
+
+
 export type CompanyDataType = z.infer<typeof CompanyDataSchema>;
+// export type CompanyDataType = z.infer<typeof CompanySchema>;
 
 // ─── Retry Helper ───────────────────────────────────────
 async function retryWithBackoff<T>(

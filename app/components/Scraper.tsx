@@ -55,7 +55,7 @@ export default function Scraper() {
     setLoading(true);
     setLogs([]);
 
-    const res = await fetch("/api/scrape-company", {
+    const res = await fetch("/api/automation-scrape-company", {
       method: "POST",
       body: JSON.stringify({ companyName: company }),
       headers: {
@@ -86,10 +86,10 @@ export default function Scraper() {
 
           if (data) {
             setData(data);
-            createCompany({
-              name: data.name ? data.name : "",
-              content: JSON.stringify(data, null, 2),
-            });
+            // createCompany({
+            //   name: data.name ? data.name : "",
+            //   content: JSON.stringify(data, null, 2),
+            // });
             setLoading(false);
             setLogs((prev) => [
               {
