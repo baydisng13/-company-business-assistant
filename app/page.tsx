@@ -40,6 +40,12 @@ export default function Home() {
             >
               Contact
             </Link>
+            <Link
+              href="/wait-list"
+              className="text-slate-600 hover:text-slate-700"
+            >
+              Wait List
+            </Link>
           </nav>
           <div className="flex items-center gap-4">
             <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center">
